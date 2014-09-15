@@ -4,11 +4,11 @@
 # BWA alignment to Painted Turtle Genome
 # By Jean P. Elbers
 # jelber2@lsu.edu
-# Last modified 7 August 2014
+# Last modified 15 Sep 2014
 ###############################################################################
 Usage = """
 
-02-bwa.py - version 1.1
+02-bwa.py - version 1.2
 STEPS:
 1.Uses BWA Mem to align paired reads to Painted Turtle Genome
     ~/bin/bwa-0.7.8/bwa mem \
@@ -64,9 +64,9 @@ else:
         Sample = InFileName.replace(FileSuffix,'') # creates Sample string
         # Customize your options here
         Queue = "workq"
-        Allocation = "hpc_gopo01"
+        Allocation = "hpc_gopo02"
         Processors = "nodes=1:ppn=16"
-        WallTime = "10:00:00"
+        WallTime = "01:30:00"
         LogOut = OutDir
         LogMerge = "oe"
         JobName = "BWA-%s" % (Sample)

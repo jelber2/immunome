@@ -4,12 +4,11 @@
 # Stampy alignment to Painted Turtle Genome
 # By Jean P. Elbers
 # jelber2@lsu.edu
-# Last modified 10 Aug 2014
+# Last modified 15 Sep 2014
 ###############################################################################
 Usage = """
 
-03-stampy.py ver 1.1 - fixed: find command, output files, concatenate command
-                       lowered run time from 18 to 14
+03-stampy.py ver 1.2 - lowered max run time to 8hrs
 Command:
 cd InDir = /work/jelber2/immunome/bwa-alignment
 1.Produce only sam header and count number of header lines with wc, also copy
@@ -129,9 +128,9 @@ else:
         Sample = InFileName.replace(FileSuffix,'') # creates Sample (note: Sample = Tort1-paired and/or Tort1-singlesANDmerged not Tort1!!)
         # Customize your job options here
         Queue = "workq"
-        Allocation = "hpc_gopo01"
+        Allocation = "hpc_gopo02"
         Processors = "nodes=1:ppn=16"
-        WallTime = "14:00:00"
+        WallTime = "08:00:00"
         LogOut = OutDir
         LogMerge = "oe"
         JobName = "stampy-%s" % (Sample)

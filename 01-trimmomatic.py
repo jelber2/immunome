@@ -4,14 +4,14 @@
 # Trimmomatic for quality and adapter trimming
 # By Jean P. Elbers
 # jelber2@lsu.edu
-# Last modified 23 June 2014
+# Last modified 15 Sep 2014
 ###############################################################################
 Usage = """
 
-01-trimmomatic.py - version 1.2
+01-trimmomatic.py - version 1.3 (limited ram to 2GB per core x 4 cores)
 STEPS:
 1.Uses Trimmomatic for quality and adapter trimming
-    java -jar ~/bin/Trimmomatic-0.32/trimmomatic-0.32.jar \
+    java -Xmx8g-jar ~/bin/Trimmomatic-0.32/trimmomatic-0.32.jar \
     PE \
     -threads 4 \
     -phred33 \
@@ -28,6 +28,7 @@ STEPS:
   and also outputs reads that do not overlap
     cd OutDir
     ~/bin/bbmap/bbmerge.sh \
+    -Xmx8g \
     t=4 \
     in1=Sample-R1-paired.trim.fastq.gz \
     in2=Sample-R2-paired.trim.fastq.gz \
@@ -81,10 +82,10 @@ else:
         Sample = InFileName.replace(FileSuffix,'') # creates Sample string
         # Customize your options here
         Queue = "single"
-        Allocation = "hpc_gopo01"
+        Allocation = "hpc_gopo02"
         Processors = "nodes=1:ppn=4"
-        WallTime = "08:00:00"
-        LogOut = "/home/jelber2/logs/immunome/trim"
+        WallTime = "04:00:00"
+        LogOut = OutDir
         LogMerge = "oe"
         JobName = "Trimmomatic-%s" % (Sample)
         Command = """
@@ -104,6 +105,7 @@ else:
         cd %s
 
         ~/bin/bbmap/bbmerge.sh \
+        -Xmx8g \
         t=4 \
         in1=%s-R1-paired.trim.fastq.gz \
         in2=%s-R2-paired.trim.fastq.gz \
