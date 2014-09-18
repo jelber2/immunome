@@ -1,0 +1,171 @@
+#! /usr/bin/env python
+
+# PBS cluster job submission in Python
+# Clean, sort, add Read groups, and Mark duplicates, realign around indels
+# By Jean P. Elbers
+# jelber2@lsu.edu
+# Last modified 17 Sep 2014
+###############################################################################
+Usage = """
+
+04b-clean_sort_addRG_markdup_realign.py - version 1.2 : limited ram to 2GB per core
+
+Command:
+cd InDir = /work/jelber2/immunome/clean-sort-addRG/
+1.Uses samtools merge to combine stampy bam files
+        ~/bin/samtools-0.1.19/samtools merge \
+        ../merged-bams/Sample.bam \
+        /work/jelber2/immunome/clean-sort-addRG/Sample-CL-RG.bam \
+        /work/jelber2/immunome2/clean-sort-addRG/Sample-CL-RG.bam
+
+2.Uses samtools flagstat to get alignment metrics on stampy aligned bam file
+        ~/bin/samtools-0.1.19/samtools flagstat \
+        ../merged-bams/Sample.bam > ../merged-bams/Sample.bam.flagstat
+
+3.Clean the initial stampy BAM file:
+        java -Xmx2g -jar ~/bin/picard-tools-1.118/CleanSam.jar \
+        I=../merged-bams/Sample.bam \
+        O=../clean-sort-addRG-markdup/Sample-CL.bam
+
+4.Mark PCR duplicates and optical duplicates:
+        java -Xmx2g -jar ~/bin/picard-tools-1.118/MarkDuplicates.jar \
+        I=../clean-sort-addRG-markdup/Sample-CL.bam \
+        O=../clean-sort-addRG-markdup/Sample-CL-MD.bam \
+        METRICS_FILE=../clean-sort-addRG-markdup/Sample-CL-MD.metrics \
+        MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=250 \
+        CREATE_INDEX=true \
+        ASSUME_SORTED=false \
+        REMOVE_DUPLICATES=false
+
+6.Find INDEL regions within individual BAM files
+        java -Xmx2g -jar ~/bin/GATK-3.2.2/GenomeAnalysisTK.jar \
+        -T RealignerTargetCreator \
+        -R RefDir/C_picta-3.0.3.fa \
+        -I ../clean-sort-addRG-markdup/Sample-CL-MD.bam \
+        --minReadsAtLocus 4 \
+        -o ../realign-around-indels/Sample.merged.intervals
+
+7.Realign the BAM based on indel intervals:
+        java -Xmx2g -jar ~/bin/GATK-3.2.2/GenomeAnalysisTK.jar \
+        -T IndelRealigner \
+        -R RefDir/C_picta-3.0.3.fa \
+        -I ../clean-sort-addRG-markdup/Sample-CL-MD.bam \
+        -targetIntervals ../realign-around-indels/Sample.merged.intervals \
+        -LOD 3.0 \
+        -o ../realign-around-indels/Sample-realigned.bam
+
+Directory info:
+
+(1)/work/jelber2/immunome/clean-sort-addRG
+(2)                      /merged-bams
+(3)                      /clean-sort-addRG-markdup
+(4)                      /realign-around-indels
+
+InDir = /work/jelber2/immunome/clean-sort-addRG
+Input Files = Sample-CL-RG.bam
+
+
+Usage (execute following code in InDir):
+
+~/scripts/immunome/04b-clean_sort_addRG_markdup_realign *-CL-RG.bam
+
+"""
+###############################################################################
+import os, sys, subprocess, re #imports os, sys, subprocess, re modules
+
+
+if len(sys.argv)<2:
+    print Usage
+else:
+    FileList = sys.argv[1:]
+    RefDir = "/work/jelber2/reference"
+    InDir = "/work/jelber2/immunome/clean-sort-addRG"
+    OutDir1 = "merged-bams"
+    OutDir2 = "clean-sort-addRG-markdup"
+    OutDir3 = "realign-around-indels"
+    os.chdir(InDir)
+    os.chdir("..") # go up one directory
+    if not os.path.exists(OutDir1):
+        os.mkdir(OutDir1) # if OutDir1 does not exist, make it
+    if not os.path.exists(OutDir2):
+        os.mkdir(OutDir2) # if OutDir2 does not exist, make it
+    if not os.path.exists(OutDir3):
+        os.mkdir(OutDir3) # if OutDir3 does not exist, make it
+    os.chdir(InDir)
+    for InFileName in FileList: # so samtools grabs only the file names (i.e., Samples)
+        FileSuffix = "-CL-RG.bam" # string to remove from InFileName
+        Sample = InFileName.replace(FileSuffix,'') # creates Sample string
+        # Customize your job options here
+        Queue = "single"
+        Allocation = "hpc_gopo02"
+        Processors = "nodes=1:ppn=4"
+        WallTime = "10:00:00"
+        LogOut = "/work/jelber2/immunome/clean-sort-addRG-markdup"
+        LogMerge = "oe"
+        JobName = "clean-sort-addRG-markdup-realign-%s" % (Sample)
+        Command ="""
+        ~/bin/samtools-0.1.19/samtools merge \
+        ../merged-bams/%s.bam \
+        /work/jelber2/immunome/clean-sort-addRG/%s-CL-RG.bam \
+        /work/jelber2/immunome2/clean-sort-addRG/%s-CL-RG.bam
+
+        ~/bin/samtools-0.1.19/samtools flagstat \
+        ../merged-bams/%s.bam > ../merged-bams/%s.bam.flagstat
+
+        java -Xmx2g -jar ~/bin/picard-tools-1.118/CleanSam.jar \
+        I=../merged-bams/%s.bam \
+        O=../clean-sort-addRG-markdup/%s-CL2.bam
+
+        java -Xmx2g -jar ~/bin/picard-tools-1.118/MarkDuplicates.jar \
+        I=../clean-sort-addRG-markdup/%s-CL2.bam \
+        O=../clean-sort-addRG-markdup/%s-CL2-MD.bam \
+        METRICS_FILE=../clean-sort-addRG-markdup/%s-CL2-MD.metrics \
+        MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=250 \
+        CREATE_INDEX=true \
+        ASSUME_SORTED=fase \
+        REMOVE_DUPLICATES=false
+
+        java -Xmx2g -jar ~/bin/GATK-3.2.2/GenomeAnalysisTK.jar \
+        -T RealignerTargetCreator \
+        -R %s/C_picta-3.0.3.fa \
+        -I ../clean-sort-addRG-markdup/%s-CL2-MD.bam \
+        --minReadsAtLocus 4 \
+        -o ../realign-around-indels/%s.merged.intervals
+
+        java -Xmx2g -jar ~/bin/GATK-3.2.2/GenomeAnalysisTK.jar \
+        -T IndelRealigner \
+        -R %s/C_picta-3.0.3.fa \
+        -I ../clean-sort-addRG-markdup/%s-CL2-MD.bam \
+        -targetIntervals ../realign-around-indels/%s.merged.intervals \
+        -LOD 3.0 \
+        -o ../realign-around-indels/%s-realigned.bam""" % \
+        (Sample, Sample, Sample,
+        Sample, Sample,
+        Sample, Sample,
+        Sample, Sample, Sample,
+        RefDir, Sample, Sample,
+        RefDir, Sample, Sample, Sample)
+
+        JobString = """
+        #!/bin/bash
+        #PBS -q %s
+        #PBS -A %s
+        #PBS -l %s
+        #PBS -l walltime=%s
+        #PBS -o %s
+        #PBS -j %s
+        #PBS -N %s
+
+        cd %s
+        %s\n""" % (Queue, Allocation, Processors, WallTime, LogOut, LogMerge, JobName, InDir, Command)
+
+        #Create pipe to qsub
+        proc = subprocess.Popen(['qsub'], shell=True,
+          stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
+        (child_stdout, child_stdin) = (proc.stdout, proc.stdin)
+
+        #Print JobString
+        JobName = proc.communicate(JobString)[0]
+        print JobString
+        print JobName
+
