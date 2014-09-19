@@ -76,8 +76,8 @@ else:
         # Customize your job options here
         Queue = "single"
         Allocation = "hpc_gopo02"
-        Processors = "nodes=1:ppn=1"
-        WallTime = "10:00:00"
+        Processors = "nodes=1:ppn=4"
+        WallTime = "00:30:00"
         LogOut = "/work/jelber2/immunome/clean-sort-addRG"
         LogMerge = "oe"
         JobName = "clean-sort-addRG-%s" % (Sample)
@@ -99,7 +99,7 @@ else:
         RGPL=illumina \
         RGPU=barcode \
         RGLB=Lib1 \
-        RGID=%s \
+        RGID=%s_9Sep2014 \
         RGSM=%s \
         VALIDATION_STRINGENCY=LENIENT""" % \
         (Sample, Sample, Sample,
