@@ -4,7 +4,7 @@
 # Clean, sort, add Read groups, and Mark duplicates, realign around indels
 # By Jean P. Elbers
 # jelber2@lsu.edu
-# Last modified 17 Sep 2014
+# Last modified 18 Sep 2014
 ###############################################################################
 Usage = """
 
@@ -22,16 +22,24 @@ cd InDir = /work/jelber2/immunome/clean-sort-addRG/
         ~/bin/samtools-0.1.19/samtools flagstat \
         ../merged-bams/Sample.bam > ../merged-bams/Sample.bam.flagstat
 
-3.Clean the initial stampy BAM file:
-        java -Xmx2g -jar ~/bin/picard-tools-1.118/CleanSam.jar \
-        I=../merged-bams/Sample.bam \
-        O=../clean-sort-addRG-markdup/Sample-CL.bam
+3.Add ReadGroup to bam header (https://www.biostars.org/p/50338/)
+        echo -e '@RG\tID:Sample_15Sep2014\tPL:illumina\tPU:barcode\tLB:Lib1\tSM:Sample' > ../merged-bams/Samplerg
+        ~/bin/samtools-0.1.19/samtools view -H ../merged-bams/Sample.bam | cat - ../merged-bams/Samplerg > ../merged-bams/Sampleheader
+        ~/bin/samtools-0.1.19/samtools reheader ../merged-bams/Sampleheader \
+        ../merged-bams/Sample.bam > ../merged-bams/Sample-header.bam
+        rm ../merged-bams/Samplerg
+        rm ../merged-bams/Sampleheader
 
-4.Mark PCR duplicates and optical duplicates:
+4.Clean the initial stampy BAM file:
+        java -Xmx2g -jar ~/bin/picard-tools-1.118/CleanSam.jar \
+        I=../merged-bams/Sample-header.bam \
+        O=../clean-sort-addRG-markdup/Sample-CL2.bam
+
+5.Mark PCR duplicates and optical duplicates:
         java -Xmx2g -jar ~/bin/picard-tools-1.118/MarkDuplicates.jar \
-        I=../clean-sort-addRG-markdup/Sample-CL.bam \
-        O=../clean-sort-addRG-markdup/Sample-CL-MD.bam \
-        METRICS_FILE=../clean-sort-addRG-markdup/Sample-CL-MD.metrics \
+        I=../clean-sort-addRG-markdup/Sample-CL2.bam \
+        O=../clean-sort-addRG-markdup/Sample-CL2-MD.bam \
+        METRICS_FILE=../clean-sort-addRG-markdup/Sample-CL2-MD.metrics \
         MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=250 \
         CREATE_INDEX=true \
         ASSUME_SORTED=false \
@@ -41,7 +49,7 @@ cd InDir = /work/jelber2/immunome/clean-sort-addRG/
         java -Xmx2g -jar ~/bin/GATK-3.2.2/GenomeAnalysisTK.jar \
         -T RealignerTargetCreator \
         -R RefDir/C_picta-3.0.3.fa \
-        -I ../clean-sort-addRG-markdup/Sample-CL-MD.bam \
+        -I ../clean-sort-addRG-markdup/Sample-CL2-MD.bam \
         --minReadsAtLocus 4 \
         -o ../realign-around-indels/Sample.merged.intervals
 
@@ -49,7 +57,7 @@ cd InDir = /work/jelber2/immunome/clean-sort-addRG/
         java -Xmx2g -jar ~/bin/GATK-3.2.2/GenomeAnalysisTK.jar \
         -T IndelRealigner \
         -R RefDir/C_picta-3.0.3.fa \
-        -I ../clean-sort-addRG-markdup/Sample-CL-MD.bam \
+        -I ../clean-sort-addRG-markdup/Sample-CL2-MD.bam \
         -targetIntervals ../realign-around-indels/Sample.merged.intervals \
         -LOD 3.0 \
         -o ../realign-around-indels/Sample-realigned.bam
@@ -99,7 +107,7 @@ else:
         Queue = "single"
         Allocation = "hpc_gopo02"
         Processors = "nodes=1:ppn=4"
-        WallTime = "10:00:00"
+        WallTime = "04:00:00"
         LogOut = "/work/jelber2/immunome/clean-sort-addRG-markdup"
         LogMerge = "oe"
         JobName = "clean-sort-addRG-markdup-realign-%s" % (Sample)
@@ -112,8 +120,15 @@ else:
         ~/bin/samtools-0.1.19/samtools flagstat \
         ../merged-bams/%s.bam > ../merged-bams/%s.bam.flagstat
 
+        echo -e '@RG\tID:%s_15Sep2014\tPL:illumina\tPU:barcode\tLB:Lib1\tSM:%s' > ../merged-bams/%srg
+        ~/bin/samtools-0.1.19/samtools view -H ../merged-bams/%s.bam | cat - ../merged-bams/%srg > ../merged-bams/%sheader
+        ~/bin/samtools-0.1.19/samtools reheader ../merged-bams/%sheader \
+        ../merged-bams/%s.bam > ../merged-bams/%s-header.bam
+        rm ../merged-bams/%srg
+        rm ../merged-bams/%sheader
+
         java -Xmx2g -jar ~/bin/picard-tools-1.118/CleanSam.jar \
-        I=../merged-bams/%s.bam \
+        I=../merged-bams/%s-header.bam \
         O=../clean-sort-addRG-markdup/%s-CL2.bam
 
         java -Xmx2g -jar ~/bin/picard-tools-1.118/MarkDuplicates.jar \
@@ -122,7 +137,7 @@ else:
         METRICS_FILE=../clean-sort-addRG-markdup/%s-CL2-MD.metrics \
         MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=250 \
         CREATE_INDEX=true \
-        ASSUME_SORTED=fase \
+        ASSUME_SORTED=false \
         REMOVE_DUPLICATES=false
 
         java -Xmx2g -jar ~/bin/GATK-3.2.2/GenomeAnalysisTK.jar \
@@ -141,6 +156,7 @@ else:
         -o ../realign-around-indels/%s-realigned.bam""" % \
         (Sample, Sample, Sample,
         Sample, Sample,
+        Sample, Sample, Sample, Sample, Sample, Sample, Sample, Sample, Sample, Sample, Sample,
         Sample, Sample,
         Sample, Sample, Sample,
         RefDir, Sample, Sample,
