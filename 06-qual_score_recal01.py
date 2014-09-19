@@ -4,7 +4,7 @@
 # Uses GATK-3.2.2 BaseRecalibrator to recalibrate quality scores
 # By Jean P. Elbers
 # jelber2@lsu.edu
-# Last modified 15 Sep 2014
+# Last modified 19 Sep 2014
 ###############################################################################
 Usage = """
 
@@ -59,7 +59,7 @@ Output Files = Sample-recal01.bam
 
 Usage (execute following code in InDir):
 
-~/scripts/immunome/06-qual_score_recal01.py *-realigned.bam
+find . -name '*-realigned.bam' -not -name 'ALL-samples-*' -exec ~/scripts/immunome/06-qual_score_recal01.py {} \;
 
 """
 ###############################################################################
@@ -80,11 +80,13 @@ else:
     os.chdir(InDir)
     for InFileName in FileList: # do the following steps for each file in the inputstream
         FileSuffix = "-realigned.bam"
-        Sample = InFileName.replace(FileSuffix,'') # create file prefix string
+        FilePrefix = "./"
+        Samplepre = InFileName.replace(FileSuffix,'') # creates Samplepre string
+        Sample = Samplepre.replace(FilePrefix,'') # creates Sample string
         # Customize your options here
         Queue = "single"
         Allocation = "hpc_gopo02"
-        Processors = "nodes=1:ppn=1"
+        Processors = "nodes=1:ppn=4"
         WallTime = "06:00:00"
         LogOut = "/work/jelber2/immunome/call-SNPs-recal01"
         LogMerge = "oe"

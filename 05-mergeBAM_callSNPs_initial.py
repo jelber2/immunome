@@ -109,8 +109,8 @@ else:
     # Customize your options here
     Queue = "single"
     Allocation = "hpc_gopo02"
-    Processors = "nodes=1:ppn=1"
-    WallTime = "10:00:00"
+    Processors = "nodes=1:ppn=4"
+    WallTime = "04:00:00"
     LogOut = "/work/jelber2/immunome/call-SNPs-initial"
     LogMerge = "oe"
     JobName = "mergeBAM_callSNPs_initial"

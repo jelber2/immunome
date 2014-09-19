@@ -5,7 +5,7 @@
 # Then call SNPs with GATK-3.2.2
 # By Jean P. Elbers
 # jelber2@lsu.edu
-# Last modified 15 Sep 2014
+# Last modified 19 Sep 2014
 ###############################################################################
 Usage = """
 
@@ -102,8 +102,8 @@ else:
     # Customize your options here
     Queue = "single"
     Allocation = "hpc_gopo02"
-    Processors = "nodes=1:ppn=1"
-    WallTime = "10:00:00"
+    Processors = "nodes=1:ppn=4"
+    WallTime = "06:00:00"
     LogOut = "/work/jelber2/immunome/call-SNPs-recal01"
     LogMerge = "oe"
     JobName = "mergeBAM_callSNPs_recal01"
