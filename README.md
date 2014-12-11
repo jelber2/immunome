@@ -1,11 +1,10 @@
 immunome
 ========
-#Python scripts for running PBS job submissions on LSU's SuperMikeII cluster.
+###Python scripts for running PBS job submissions on LSU's SuperMikeII cluster.
+###The jobs in this repository are for analyzing Illumina NGS reads from a target enrichment experiment.
+###Probes target painted turtle immune response genes and thus capture the "immunome" of other chelonians.
 
-##The jobs in this repository are for analyzing Illumina NGS reads from a target enrichment experiment.
-##Probes target painted turtle immune response genes and thus capture the "immunome" of other chelonians.
-
-
+========
 STEPS FOR QUALITY CONTROL, MAPPING, & SNP CALLING
 #Download fastq.gz.zip files for the two MiSeq runs from BaseSpace
 ###Copy data to supermikeII
@@ -41,21 +40,21 @@ STEPS FOR QUALITY CONTROL, MAPPING, & SNP CALLING
 ###Run 04a-clean_sort_addRG.py stampy.bam in:
     /work/jelber2/immunome/stampy-alignment (make RGID=%s_9Sep2014, and directory to immunome)
     /work/jelber2/immunome2/stampy-alignment (make RGID=%s_15Sep2014, and directory to immunome2)
-###Run 04b-clean_sort_addRG_markdup_realign.py
-###Run 04c-percent_reads_on_target.py
-###Run 04d-percent_reads_on_target_stampy.sh
-###Run 05-mergeBAM_callSNPs_initial.py
-###Run 06-qual_score_recal01.py
-###Run 07-mergeBAM_callSNPs_recal01.py
-###Run 08-qual_score_recal02.py
-###Run 09-mergeBAM_callSNPs_recal02.py
-###Run 10-qual_score_recal03.py
-###Run 11-mergeBAM_callSNPs_recal03.py
-###Run 12-seq_metrics.py
+####Run 04b-clean_sort_addRG_markdup_realign.py
+####Run 04c-percent_reads_on_target.py
+####Run 04d-percent_reads_on_target_stampy.sh
+####Run 05-mergeBAM_callSNPs_initial.py
+####Run 06-qual_score_recal01.py
+####Run 07-mergeBAM_callSNPs_recal01.py
+####Run 08-qual_score_recal02.py
+####Run 09-mergeBAM_callSNPs_recal02.py
+####Run 10-qual_score_recal03.py
+####Run 11-mergeBAM_callSNPs_recal03.py
+####Run 12-seq_metrics.py
 
 ========
 STEPS FOR VARIANT PREDICTION
-#Download Tools First
+##Download Tools First
 ###Downloaded snpEff
     #ideally want to know if variants will affect protein structure and possibly immune gene function
     cd /work/jelber2/reference
@@ -246,147 +245,3 @@ STEPS FOR LOOKING FOR SNPs UNDER SELECTION
         -od . \
         -o bayescan_no_loci_with_low_freq_minor_alleles \
         -threads 16
-
-
-
-========
-OLD CODE
-###Download and Run PGDSpider to convert vcf file to bayescan input format
-    wget http://www.cmpg.unibe.ch/software/PGDSpider/PGDSpider_2.0.7.1.zip
-    unzip PGDSpider_2.0.7.1.zip 
-    mv PGDSpider_2.0.7.1.zip PGDSpider_2.0.7.1
-
-    cd ~/bin/PGDSpider_2.0.7.1/
-    #use following command to generate spider.conf.xml
-    java -Xmx1024m -Xms512m -jar ~/bin/PGDSpider_2.0.7.1/PGDSpider2-cli.jar \
-    -inputfile /work/jelber2/immunome/bayescan/AL.vcf \
-    -inputformat VCF \
-    -outputfile /work/jelber2/immunome/bayescan/AL.bayescan \
-    -outputformat GESTE_BAYE_SCAN
-    
-    #edit spider.conf.xml
-    nano spider.conf.xml #to add path to samtools
-    #change
-    <entry key="PathBcftools"></entry>
-    #to
-    <entry key="PathBcftools">/home/jelber2/bin/samtools-0.1.19/bcftools/bcftools</entry>
-    #change
-    <entry key="PathSamtools"></entry>
-    #to
-    <entry key="PathSamtools">/home/jelber2/bin/samtools-0.1.19/samtools</entry>
-    #save and exit
-    
-    #run following command to generate spid file
-    java -Xmx1024m -Xms512m -jar ~/bin/PGDSpider_2.0.7.1/PGDSpider2-cli.jar \
-    -inputfile /work/jelber2/immunome/bayescan/AL.vcf \
-    -inputformat VCF \
-    -outputfile /work/jelber2/immunome/bayescan/AL.bayescan \
-    -outputformat GESTE_BAYE_SCAN
-    
-    #should see error:
-    No SPID file specified containing preanswered conversion questions.
-    A template SPID file was saved under: /work/jelber2/immunome/bayescan/template_VCF_GESTE_BAYE_SCAN.spid
-
-    #edit the spid file
-    nano /work/jelber2/immunome/bayescan/template_VCF_GESTE_BAYE_SCAN.spid
-        example spid file:
-        saved as:/work/jelber2/immunome/bayescan/VCF_GESTE_BAYE_SCAN.spid
-            # spid-file generated: Thu Sep 25 21:32:59 CDT 2014
-
-            # VCF Parser questions
-            PARSER_FORMAT=VCF
-
-            # Do you want to include a file with population definitions?
-            VCF_PARSER_POP_QUESTION=TRUE
-            # Only input following regions (refSeqName:start:end, multiple regions: whitespace sepa$
-            VCF_PARSER_REGION_QUESTION=
-            # What is the ploidy of the data?
-            VCF_PARSER_PLOIDY_QUESTION=DIPLOID
-            # Only output following individuals (ind1, ind2, ind4, ...):
-            VCF_PARSER_IND_QUESTION=
-            # Output genotypes as missing if the read depth of a position for the sample is below:
-            VCF_PARSER_READ_QUESTION=20
-            # Take most likely genotype if "PL" or "GL" is given in the genotype field?
-            VCF_PARSER_PL_QUESTION=TRUE
-            # Do you want to exclude loci with only missing data?
-            VCF_PARSER_EXC_MISSING_LOCI_QUESTION=TRUE
-            # Select population definition file:
-            VCF_PARSER_POP_FILE_QUESTION=/work/jelber2/immunome/bayescan/population_definitions.txt
-            # Only output SNPs with a phred-scaled quality of at least:
-            VCF_PARSER_QUAL_QUESTION=30
-            # Do you want to include non-polymorphic SNPs?
-            VCF_PARSER_MONOMORPHIC_QUESTION=Yes
-            # Output genotypes as missing if the phred-scale genotype quality is below:
-            VCF_PARSER_GTQUAL_QUESTION=30
-
-            # GESTE / BayeScan Writer questions
-            WRITER_FORMAT=GESTE_BAYE_SCAN
-
-            # Specify which data type should be included in the GESTE / BayeScan file  (GESTE / Bay$
-            GESTE_BAYE_SCAN_WRITER_DATA_TYPE_QUESTION=SNP
-
-        /work/jelber2/immunome/bayescan/population_definitions.txt
-            AL102	pop_1
-            AL103	pop_1
-            AL106	pop_1
-            AL108	pop_1
-            FL846	pop_2
-            FL855	pop_2
-            FL857	pop_2
-            FL880	pop_2
-            GG1044	pop_3
-            GG1435	pop_3
-            GG1835	pop_3
-            GG462	pop_3
-            LA62	pop_4
-            LA66	pop_4
-            LA77	pop_4
-            LA78	pop_4
-
-    #PGDSpider_run.py
-        java -Xmx1024m -Xms512m -jar ~/bin/PGDSpider_2.0.7.1/PGDSpider2-cli.jar \
-        -inputfile /work/jelber2/immunome/call-SNPs-recal03/ALL-samples-recal03-Q30-SNPs.vcf \
-        -inputformat VCF \
-        -outputfile /work/jelber2/immunome/bayescan/ALL-samples-recal03-Q30-SNPs.bayescan.input \
-        -outputformat GESTE_BAYE_SCAN \
-        -spid /work/jelber2/immunome/bayescan/VCF_GESTE_BAYE_SCAN.spid
-
-
--Run BayeScan
-
-        ~/bin/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
-        /work/jelber2/immunome/bayescan/ALL-samples-recal03-Q30-SNPs.bayescan.input \
-        -snp \
-        -od . \
-        -threads 16
-
-OLD
-#Do all possible comparision
-    ~/bin/bcftools/bcftools isec -n -4 -f PASS -p comparisions ALsamples_shared.vcf.gz GGsamples_shared.vcf.gz FLsamples_shared.vcf.gz LAsamples_shared.vcf.gz
-#does not work    ~/bin/vcftools_0.1.12b/bin/vcf-isec -a -p comparisions ALsamples_shared.vcf.gz GGsamples_shared.vcf.gz FLsamples_shared.vcf.gz LAsamples_shared.vcf.gz
-
-
-#Florida vs. Alabama
-    ~/bin/bcftools/bcftools isec -f PASS -p GGsamples_shared -n=2 -w1 GG1044.vcf.gz GG1435.vcf.gz GG1835.vcf.gz GG462.vcf.gz
-
-
-
--Use bcftools stats then plot
-    ~/bin/bcftools/bcftools stats -c some -f PASS -S FLsamples ALL-samples-recal03-Q30-SNPs.vcf.gz > out
-    ~/bin/bcftools/plot-vcfstats -p FLsample_plots -s out
-
-
-~/bin/bcftools/bcftools isec -f PASS -p FLsamples_shared --n=4 -w1 FL846.vcf.gz FL855.vcf.gz FL857.vcf.gz FL880.vcf.gz
-
-
-    # command to split vcf file by sample (not implemented on SuperMikeII b/c process was quick, < 5 min)
-    cd /work/jelber2/immunome/call-SNPs-recal03/ 
-    while read i
-    do
-    java -Xmx4g -jar ~/bin/GATK-3.2.2/GenomeAnalysisTK.jar \
-    -T SelectVariants \
-    -R /work/jelber2/reference/C_picta-3.0.3.fa \
-    -V ../call-SNPs-recal03/ALL-samples-recal03-Q30-SNPs.vcf \
-    -sn $i \
-    -o ../split-vcfs/$i.vcf
-    done < samplelist
