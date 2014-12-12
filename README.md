@@ -1,12 +1,12 @@
-immunome
+#immunome
 ========
 ###Python scripts for running PBS job submissions on LSU's SuperMikeII cluster.
 ###The jobs in this repository are for analyzing Illumina NGS reads from a target enrichment experiment.
 ###Probes target painted turtle immune response genes and thus capture the "immunome" of other chelonians.
 
 ========
-STEPS FOR QUALITY CONTROL, MAPPING, & SNP CALLING
-#Download fastq.gz.zip files for the two MiSeq runs from BaseSpace
+#STEPS FOR QUALITY CONTROL, MAPPING, & SNP CALLING
+##Download fastq.gz.zip files for the two MiSeq runs from BaseSpace
 ###Copy data to supermikeII
     #immunome = miseq data from 9Sep2014
     rsync --archive --stats --progress /work/jelber2/immunome/analysis_13944931_fastq.zip jelber2@mike.hpc.lsu.edu:/work/jelber2/immunome/
@@ -53,7 +53,7 @@ STEPS FOR QUALITY CONTROL, MAPPING, & SNP CALLING
 ####Run 12-seq_metrics.py
 
 ========
-STEPS FOR VARIANT PREDICTION
+#STEPS FOR VARIANT PREDICTION
 ##Download Tools First
 ###Downloaded snpEff
     #ideally want to know if variants will affect protein structure and possibly immune gene function
@@ -161,7 +161,7 @@ STEPS FOR VARIANT PREDICTION
     ~/bin/samtools-1.1/htslib-1.1/bgzip $i-annotated.vcf
     ~/bin/samtools-1.1/htslib-1.1/tabix -p vcf $i-annotated.vcf.gz
     done < samplelist
-###Get only high quality snp alleles shared among:
+###A.Get only high quality snp positions (couldn't get to work for alleles/genotypes) shared among:
     #Florida torts
     ~/bin/bcftools/bcftools isec -f PASS --include 'SNPEFF_EFFECT="NON_SYNONYMOUS_CODING"' -p FLsamples_shared -n=4 -w1 FL846-annotated.vcf.gz FL855-annotated.vcf.gz FL857-annotated.vcf.gz FL880-annotated.vcf.gz
     #Alabama torts
@@ -170,9 +170,7 @@ STEPS FOR VARIANT PREDICTION
     ~/bin/bcftools/bcftools isec -f PASS --include 'SNPEFF_EFFECT="NON_SYNONYMOUS_CODING"' -p GGsamples_shared -n=4 -w1 GG1044-annotated.vcf.gz GG1435-annotated.vcf.gz GG1835-annotated.vcf.gz GG462-annotated.vcf.gz
     #Louisiana torts
     ~/bin/bcftools/bcftools isec -f PASS --include 'SNPEFF_EFFECT="NON_SYNONYMOUS_CODING"' -p LAsamples_shared -n=4 -w1 LA62-annotated.vcf.gz LA66-annotated.vcf.gz LA77-annotated.vcf.gz LA78-annotated.vcf.gz
-    #'ALL' torts
-    #~/bin/bcftools/bcftools isec -f PASS --include 'SNPEFF_AMINO_ACID_CHANGE' -p LAsamples_shared -n=16 -w1 LA62-annotated.vcf.gz LA66-annotated.vcf.gz LA77-annotated.vcf.gz LA78-annotated.vcf.gz GG1044-annotated.vcf.gz GG1435-annotated.vcf.gz GG1835-annotated.vcf.gz GG462-annotated.vcf.gz AL102-annotated.vcf.gz AL103-annotated.vcf.gz AL106-annotated.vcf.gz AL108-annotated.vcf.gz FL846-annotated.vcf.gz FL855-annotated.vcf.gz FL857-annotated.vcf.gz FL880-annotated.vcf.gz
-###Rename vcf files for each state's torts, compressed them, then index them
+####1.Rename vcf files for each state's torts, compressed them, then index them
     mv ALsamples_shared/0000.vcf ALsamples_shared.vcf
     mv GGsamples_shared/0000.vcf GGsamples_shared.vcf
     mv FLsamples_shared/0000.vcf FLsamples_shared.vcf
@@ -185,31 +183,111 @@ STEPS FOR VARIANT PREDICTION
     ~/bin/samtools-1.1/htslib-1.1/tabix -p vcf GGsamples_shared.vcf.gz
     ~/bin/samtools-1.1/htslib-1.1/tabix -p vcf FLsamples_shared.vcf.gz
     ~/bin/samtools-1.1/htslib-1.1/tabix -p vcf LAsamples_shared.vcf.gz
-###Used Venny to create VennDiagram
+####2.Used Venny to create VennDiagram
     #http://bioinfogp.cnb.csic.es/tools/venny/index.html
     #Oliveros, J.C. (2007) VENNY. An interactive tool for comparing lists with Venn Diagrams.
     #http://bioinfogp.cnb.csic.es/tools/venny/index.html.
-####1.Made three column file (chr    position    allele)
+#####a.Made three column file (chr    position    allele)
     cut -f 1-2,4 ALsamples_shared/sites.txt > ALsamples_snps.txt
     cut -f 1-2,4 GGsamples_shared/sites.txt > GGsamples_snps.txt
     cut -f 1-2,4 FLsamples_shared/sites.txt > FLsamples_snps.txt
     cut -f 1-2,4 LAsamples_shared/sites.txt > LAsamples_snps.txt
-####2.Open files with gedit
+#####b.Open files with gedit
     gedit LAsamples_snps.txt
     gedit ALsamples_snps.txt
     gedit GGsamples_snps.txt
     gedit FLsamples_snps.txt
-####3.Copy and pasted each file into venny in order from west to east
+#####c.Copy and pasted each file into venny in order from west to east
     List1= LA torts
     List2= AL torts
     List3= GG torts
     List4= FL torts
-####3.Created Venn diagram and then saved output as
+#####d.Created Venn diagram and then saved output as
     /work/jelber2/immunome/split-vcfs/immunome_venny_shared_nonsynonymous_snps.png
     /work/jelber2/immunome/split-vcfs/immunome_venny_shared_all_snps.png
+###B.Get only high quality non-synonymous snp alleles - without b/vcftools
+    cd /work/jelber2/immunome
+    mkdir /venny-data
+    cd venny-data
+    #script to 
+    while read i
+    do
+    zcat ../split-vcfs/$i-annotated.vcf.gz | \
+    grep -v '#' | grep 'PASS' | grep 'NON_SYNONYMOUS' | \
+    cut -f 1-2,5 > $i-annotated.txt
+    done < samplelist
+####1.Opened each set of text files (4 files per set) separately with gedit
+    #e.g.,
+    gedit AL*
+    #opens AL102-annotated.txt AL106-annotated.txt AL103-annotated.txt AL108-annotated.txt
+####2.Copy and pasted the contents of each file into Venny
+####3.Saved the intersection of all 4 samples as Pop-annotated.txt (e.g., AL-annotated.txt)
+####4.Saved venn diagram image as immunome_venny_shared_pop_nonsynonymous_snps.png
+    #where 'pop' is either LA, AL, GG, or FL
+####5.Repeated steps 1-4 using the four populations
+    gedit LA-annotated.txt AL-annotated.txt GG-annotated.txt FL-annotated.txt
+####6.Saved venn diagram as immunome_venny_shared_all_nonsynonymous_snps.png
+####7.Saved snp alleles unique to each pop as:
+#####LA_only.txt
+#####AL_only.txt
+#####GG_only.txt
+#####FL_only.txt
+###Used igv image capture script from Jonathan Keats to take pictures of snp locations
+####Get IGV
+    cd ~/bin
+    wget http://www.broadinstitute.org/igv/projects/downloads/IGV_2.3.40.zip
+    unzip IGV_2.3.40.zip 
+    mv IGV_2.3.40.zip IGV_2.3.40
+    cd IGV_2.3.40/
+####Get script
+    wget http://www.keatslab.org/computation/ngs-tools/ngs-scripts/igv_image_capture_v1.sh
+####Make directory for images
+    cd /work/jelber2/immunome
+    mkdir igv-snps
+    cd igv-snps
+    mkdir snapshots
+####Make target files to filter vcfs
+    cut -f 1-2 ../venny-data/LA_only.txt | grep -v 'Elements' > LA_only_nonysn_snps_target.txt
+    cut -f 1-2 ../venny-data/AL_only.txt | grep -v 'Elements' > AL_only_nonysn_snps_target.txt
+    cut -f 1-2 ../venny-data/GG_only.txt | grep -v 'Elements' > GG_only_nonysn_snps_target.txt
+    cut -f 1-2 ../venny-data/FL_only.txt | grep -v 'Elements' > FL_only_nonysn_snps_target.txt
+####Merge annotated vcfs
+    ~/bin/bcftools/bcftools merge -f PASS -o ALLsamples-annotated.vcf.gz -O z -m both ../split-vcfs/*-annotated.vcf.gz
+    zcat ALLsamples-annotated.vcf.gz > ALLsamples-annotated.vcf
+####Filter ALLsamples-annotated.vcf.gz by each target file
+    ~/bin/bcftools/bcftools view --output-type v -o LA_only_nonysn_snps_target.vcf --targets-file LA_only_nonysn_snps_target.txt ALLsamples-annotated.vcf.gz
+    ~/bin/bcftools/bcftools view --output-type v -o AL_only_nonysn_snps_target.vcf --targets-file AL_only_nonysn_snps_target.txt ALLsamples-annotated.vcf.gz
+    ~/bin/bcftools/bcftools view --output-type v -o GG_only_nonysn_snps_target.vcf --targets-file GG_only_nonysn_snps_target.txt ALLsamples-annotated.vcf.gz
+    ~/bin/bcftools/bcftools view --output-type v -o FL_only_nonysn_snps_target.vcf --targets-file FL_only_nonysn_snps_target.txt ALLsamples-annotated.vcf.gz
+####Run igv image capture on each target file to produce a batch file
+    bash ~/bin/IGV_2.3.40/igv_image_capture_v1.sh /work/jelber2/immunome/igv-snps/LA_only_nonysn_snps_target.vcf
+    #Options used: Yes, VCF, LA, /work/jelber2/immunome/igv-snps/snapshots
+    bash ~/bin/IGV_2.3.40/igv_image_capture_v1.sh /work/jelber2/immunome/igv-snps/AL_only_nonysn_snps_target.vcf
+    #Options used: Yes, VCF, AL, /work/jelber2/immunome/igv-snps/snapshots
+    bash ~/bin/IGV_2.3.40/igv_image_capture_v1.sh /work/jelber2/immunome/igv-snps/GG_only_nonysn_snps_target.vcf
+    #Options used: Yes, VCF, GG, /work/jelber2/immunome/igv-snps/snapshots
+    bash ~/bin/IGV_2.3.40/igv_image_capture_v1.sh /work/jelber2/immunome/igv-snps/FL_only_nonysn_snps_target.vcf
+    #Options used: Yes, VCF, FL, /work/jelber2/immunome/igv-snps/snapshots
+####If you don't want to take snapshot
+    grep -v 'snapshot' AL_IGV_run.txt > LA_IGV_nosnapshot_run.txt
+    grep -v 'snapshot' AL_IGV_run.txt > AL_IGV_nosnapshot_run.txt
+    grep -v 'snapshot' GG_IGV_run.txt > GG_IGV_nosnapshot_run.txt
+    grep -v 'snapshot' FL_IGV_run.txt > FL_IGV_nosnapshot_run.txt
+####Run IGV-
+    #loading the ALLsamples-annotated.vcf file
+    ~/bin/IGV_2.3.40/igv.sh /work/jelber2/immunome/igv-snps/ALLsamples-annotated.vcf
+    #or loading the ALL-samples-recal03.bam file
+    ~/bin/IGV_2.3.40/igv.sh /work/jelber2/immunome/call-SNPs-recal03/ALL-samples-recal03.bam
+    #Once loaded, Click on 'Tools' tab in the main menu
+    #Select the batch file LA_IGV_run.txt in the 
+    #/work/jelber2/immunome/igv-snps/ directory
+    #let IGV do it's thing (it will take a while)
+    #repeat for AL_IGV_run.txt, GG_IGV_run.txt, FL_IGV_run.txt
+
 
 ========
-STEPS FOR LOOKING FOR SNPs UNDER SELECTION
+#STEPS FOR LOOKING FOR SNPs UNDER SELECTION
+##Download tools
 ###Download BayeScan
     cd /home/jelber2/bin
     wget http://cmpg.unibe.ch/software/BayeScan/files/BayeScan2.1.zip
