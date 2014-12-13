@@ -241,6 +241,27 @@
     cd IGV_2.3.40/
 ####Get script
     wget http://www.keatslab.org/computation/ngs-tools/ngs-scripts/igv_image_capture_v1.sh
+####Make igv .genome file from C_picta genome
+    cd /work/jelber2/reference
+    #get FASTA(FNA) file for C_picta-3.0.3
+    wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF_000241765.3_Chrysemys_picta_bellii-3.0.3/GCF_000241765.3_Chrysemys_picta_bellii-3.0.3_genomic.fna.gz
+    #get gff gene annotation for C_picta-3.0.3
+    wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF_000241765.3_Chrysemys_picta_bellii-3.0.3/GCF_000241765.3_Chrysemys_picta_bellii-3.0.3_genomic.gff.gz
+    #unzip the two files
+    gunzip GCF_000241765.3_Chrysemys_picta_bellii-3.0.3_genomic.fna.gz
+    gunzip GCF_000241765.3_Chrysemys_picta_bellii-3.0.3_genomic.gff.gz
+    #modify igv.sh and change 2000m to 4000m, so you have at least 4GB ram
+    nano ~/bin/IGV_2.3.40/igv.sh
+    #run igv
+    ~/bin/IGV_2.3.40/igv.sh
+    #Click on the 'Genomes' tab on the main menu then select, 'Create .genome File...'
+    #Under 'Unique identifier' type 'C_picta-3.0.3'
+    #Under 'Descriptive name' type 'C_picta-3.0.3'
+    #Under 'FASTA file' select 'GCF_000241765.3_Chrysemys_picta_bellii-3.0.3_genomic.fna'
+    #Under 'Gene file' select 'GCF_000241765.3_Chrysemys_picta_bellii-3.0.3_genomic.gff'
+    #Click 'Ok'
+    #Save as GCF_000241765.3_Chrysemys_picta_bellii-3.0.3_genomic.genome in the 
+    # /work/jelber2/reference/ directory
 ####Make directory for images
     cd /work/jelber2/immunome
     mkdir igv-snps
