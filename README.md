@@ -51,7 +51,17 @@
 ####Run 10-qual_score_recal03.py
 ####Run 11-mergeBAM_callSNPs_recal03.py
 ####Run 12-seq_metrics.py
-
+####Need to use beagle to improve SNPs called by Unified Genotyper
+#####Downloaded beagle
+    cd ~/bin
+    wget http://faculty.washington.edu/browning/beagle/beagle.r1398.jar
+#####Ran beagle
+    cd /work/jelber2/immunome
+    mkdir beagle
+    java -Xmx4000m -jar ~/bin/beagle.r1398.jar \
+    gtgl=/work/jelber2/immunome/call-SNPs-recal03/ALL-samples-recal03-Q30-SNPs.vcf \
+    nthreads=2 \
+    out=/work/jelber2/immunome/beagle/ALL-samples-recal03-Q30-SNPs-beagle
 ========
 #STEPS FOR VARIANT PREDICTION
 ##Download Tools First
