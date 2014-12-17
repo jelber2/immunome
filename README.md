@@ -293,27 +293,80 @@
     # Path to BayeScan
     /home/jelber2/bin/BayeScan2.1/binaries/BayeScan2.1_linux64bits
 ###Download Simple Fool's Guide to RNA-seq scripts to convert vcf file to BayeScan input format
-    #runs make_bayescan_input.py using:
+    cd ~/scripts/immunome/
+    mkdir fromSFG
+    cd fromSFG
+    wget http://sfg.stanford.edu/Scripts.zip
+    unzip Scripts.zip 
+    mv Scripts\ for\ SFG/ Scripts_for_SFG
+####Run make_bayescan_input.py
+    cd /work/jelber2/immunome
+    mkdir bayescan-beagle
+    cd bayescan-beagle
+#####1.Had to make populations.txt file
+    # e.g., format (\t=tab)
+    #Sample\tpopulation1
+#####2.Add GenotypeSummaries to ALL-samples-recal03-Q30-SNPs-beagle.vcf
+    cd /work/jelber2/immunome/split-vcfs/
+    zcat ALL-samples-recal03-Q30-SNPs-beagle.vcf.gz > ALL-samples-recal03-Q30-SNPs-beagle.vcf
+    perl -pe "s/(GT:DS:GP)/\1:GQ/" ALL-samples-recal03-Q30-SNPs-beagle.vcf > ALL-samples-recal03-Q30-SNPs-beagle-fixed.vcf
+    perl -pe "s/(\d\|\d:\d:\d,\d,\d)/\1:30/g" ALL-samples-recal03-Q30-SNPs-beagle-fixed.vcf > ALL-samples-recal03-Q30-SNPs-beagle-fixed2.vcf
+#####3.Ran make_bayescan_input.py
     #30 = min genotype quality
     #4 = min number of good quality genotypes required from each population in order for a given SNP to be included in the analysis
     #1 = min number of copies of the minor allele that are necc. for a locus to be considered trustworthy enough to be used in BayeScan
     #1 = make outfile file (used_snp_genos.txt) showing what snp genotypes were used
+    #> = creates a file so you know the values for each population
     #output = bayes_input.tx, snpkey.txt, low_freq_snps.txt, used_snp_genos.txt
-    python /Users/jelbers/Documents/Documents/LSU/Dissertation/Immunome/fromSFG/Scripts_for_SFG/make_bayescan_input.py /Users/jelbers/Desktop/sandbox/bayescan/ALL-samples-recal03-Q30-SNPs.vcf /Users/jelbers/Desktop/sandbox/bayescan_with_sfg_scripts/populations.txt 30 4 1 1
+    cd /work/jelber2/immunome/bayescan-beagle
+    python ~/scripts/immunome/fromSFG/Scripts_for_SFG/make_bayescan_input_using_phased_data.py ../split-vcfs/ALL-samples-recal03-Q30-SNPs-beagle-fixed2.vcf populations.txt 30 4 1 1 > population-info.txt
     #copy files to SuperMikeII
-    rsync --stats --progress --archive /Users/jelbers/Desktop/sandbox/bayescan_with_sfg_scripts/ jelber2@mike.hpc.lsu.edu:/work/jelber2/immunome/bayescan_with_sfg_scripts/ -n
-###Run BayeScan with all loci
+    rsync --stats --progress --archive /work/jelber2/immunome/bayescan-beagle/ jelber2@mike.hpc.lsu.edu:/work/jelber2/immunome/bayescan-beagle/ -n
+##Ran bayescan_run.py on SuperMikeII - takes about 6hrs with 16 cores
+###Used all loci
     ~/bin/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
-    /work/jelber2/immunome/bayescan_with_sfg_scripts/bayescan_input.txt \
+    /work/jelber2/immunome/bayescan-beagle/bayes_input.txt \
     -snp \
     -od . \
     -o bayescan_all_loci \
     -threads 16
-###Run BayeScan excluding loci with low frequency minor allele snps
+###Or excluding loci with low frequency minor allele snps
     ~/bin/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
-    /work/jelber2/immunome/bayescan_with_sfg_scripts/bayescan_input.txt \
-    -d low_freq_snps.txt
+    /work/jelber2/immunome/bayescan-beagle/bayes_input.txt
     -snp \
+    -d low_freq_snps.txt \
     -od . \
     -o bayescan_no_loci_with_low_freq_minor_alleles \
     -threads 16
+###View bayescan results
+    #initiate R in the terminal
+    R
+    #source the plot_R.r script from Bayescan
+    source("/home/jelber2/bin/BayeScan2.1/R functions/plot_R.r")
+    #plot fst values for all snp loci and save data as 'all_loci'
+    all_loci_results <- plot_bayescan("/work/jelber2/immunome/bayescan-beagle/bayescan_all_loci_fst.txt", FDR=0.01)
+    #save the candidate loci to a text file
+    write(all_loci_results$outliers, file= "/work/jelber2/immunome/bayescan-beagle/all_loci_FDR_0.01_outlier_snps.txt", ncolumns= 1,append= FALSE)
+    #repeat for snp loci without minor alleles below minor allele frequency of 1 copy
+    noMAF_loci_results <- plot_bayescan("/work/jelber2/immunome/bayescan-beagle/bayescan_no_loci_with_low_freq_minor_alleles_fst.txt", FDR=0.01)
+    write(noMAF_loci_results$outliers, file= "/work/jelber2/immunome/bayescan-beagle/noMAF_loci_FDR_0.01_outlier_snps.txt", ncolumns= 1,append= FALSE)
+###View bayescan results in IGV
+    #create a copy of snpkey.txt, so it can be modified
+    cp snpkey.txt snpkey_noMAF.txt
+    cp snpkey.txt snpkey_all.txt
+    #code to create IGV batch file for all loci
+    while read i
+    do
+    perl -pi -e "s/^$i\t(.+)_(.+)\n/goto \1:\2\n/" snpkey_all.txt
+    done < all_loci_FDR_0.01_outlier_snps.txt
+    grep 'goto' snpkey_all.txt > all_loci_FDR_0.01_outlier_snps_igv.txt
+    #code to create IGV batch file for noMAF loci
+    while read i
+    do
+    perl -pi -e "s/^$i\t(.+)_(.+)\n/goto \1:\2\n/" snpkey_noMAF.txt
+    done < noMAF_loci_FDR_0.01_outlier_snps.txt
+    grep 'goto' snpkey_noMAF.txt > noMAF_loci_FDR_0.01_outlier_snps_igv.txt
+    #view in IGV
+    ~/bin/IGV_2.3.40/igv.sh /work/jelber2/immunome/split-vcfs/ALL-samples-annotated.vcf.gz
+    #open all_loci_FDR_0.01_outlier_snps_igv.txt or
+    #noMAF_loci_FDR_0.01_outlier_snps_igv.txt
